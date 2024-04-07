@@ -5,8 +5,7 @@ fn main() {
     //  cargo run -- name 111.txt
 
     // 获取参数
-    let args: Vec<String> = env::args().collect();
-    let config = Config::build(&args).unwrap_or_else(|err| {
+    let config = Config::build(env::args()).unwrap_or_else(|err| {
         eprintln!("error: {}", err);
         process::exit(1);
     });
