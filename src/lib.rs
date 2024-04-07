@@ -1,9 +1,11 @@
+use std::env;
 use std::error;
 use std::fs;
 
 pub struct Config {
     pub query: String,
     pub file_path: String,
+    pub ignore_case: bool,
 }
 impl Config {
     pub fn build(args: &[String]) -> Result<Config, &str> {
@@ -12,70 +14,83 @@ impl Config {
         }
         let query = args[1].clone();
         let file_path = args[2].clone();
-        Ok(Config { query, file_path })
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+        Ok(Config {
+            query,
+            file_path,
+            ignore_case,
+        })
     }
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
     let content = fs::read_to_string(config.file_path)?;
-    for line in search(&config.query, &content) {
-      println!("{}", line);
+    let result = if config.ignore_case {
+        search_case_insensitive(&config.query, &content);
+    } else {
+        search(&config.query, &content);
+    };
+    for line in result {
+        println!("{line}");
     }
     Ok(())
 }
 
-pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str>{
-  let mut results = Vec::new();
-  for line in content.lines() {
-    if line.contains(query) {
-      results.push(line);
+pub fn search<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+    for line in content.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
     }
-  }
-  results
+    results
 }
 
-pub fn search_case_insensitive<'a>(query: &str, content: &'a str) -> Vec<&'a str>{
-  let query = query.to_lowercase();
-  let mut results = Vec::new();
-  for line in content.lines() {
-    if line.to_lowercase().contains(&query) {
-      results.push(line);
+pub fn search_case_insensitive<'a>(query: &str, content: &'a str) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+    for line in content.lines() {
+        if line.to_lowercase().contains(&query) {
+            results.push(line);
+        }
     }
-  }
-  results
+    results
 }
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+    use super::*;
 
-  #[test]
-  fn on_result(){
-    let query = "productive";
-    let content = "\
+    #[test]
+    fn on_result() {
+        let query = "productive";
+        let content = "\
 Rust:
 fast, safe, productive.
 Pick three.";
-    assert_eq!(vec!["fast, safe, productive."], search(query, content));
-  }
+        assert_eq!(vec!["fast, safe, productive."], search(query, content));
+    }
 
-  #[test]
-  fn case_sensitive(){
-    let query = "productive";
-    let content = "\
+    #[test]
+    fn case_sensitive() {
+        let query = "productive";
+        let content = "\
 Rust:
 fast, safe, productive.
 Pick three.";
-    assert_eq!(vec!["fast, safe, productive."], search(query, content));
-  }
+        assert_eq!(vec!["fast, safe, productive."], search(query, content));
+    }
 
-  #[test]
-  fn case_insensitive(){
-    let query = "Rust";
-    let content = "\
+    #[test]
+    fn case_insensitive() {
+        let query = "Rust";
+        let content = "\
 Rust:
 fast, safe, productive.
 Trust me.";
-    assert_eq!(vec!["Rust:", "Trust me."], search_case_insensitive(query, content));
-  }
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, content)
+        );
+    }
 }
