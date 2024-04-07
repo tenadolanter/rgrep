@@ -26,13 +26,15 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn error::Error>> {
     let content = fs::read_to_string(config.file_path)?;
     let result = if config.ignore_case {
-        search_case_insensitive(&config.query, &content);
+        search_case_insensitive(&config.query, &content)
     } else {
-        search(&config.query, &content);
+        search(&config.query, &content)
     };
+
     for line in result {
-        println!("{line}");
+        println!("{}", line);
     }
+
     Ok(())
 }
 
